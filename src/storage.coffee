@@ -29,12 +29,18 @@ class EphemeralStorage
       @_lastTimeoutToken = setTimeout(@reap, next.ttl - time + 5)
     return
 
+  contains : (key) ->
+    return @_map[key]?
+
   push : (key, entry, ttl) ->
     ttl ?= new Date().valueOf() + (@ttl * 1000)
     @_map[key] = entry
     @_heap.push {key, ttl}
 
     process.nextTick(@reap)
+
+  get : (key) ->
+    return @_map[key]
 
   extract : (key) ->
     entry = @_map[key]

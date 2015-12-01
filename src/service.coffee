@@ -2,6 +2,7 @@ EphemeralSocket  = require './socket'
 EphemeralStorage = require './storage'
 SocketIds        = require './ids'
 EventEmitter     = require 'events'
+url              = require 'url'
 
 class EphemeralSocketService extends EventEmitter
   constructor : (options = {}) ->
@@ -13,14 +14,38 @@ class EphemeralSocketService extends EventEmitter
   until the socket is requested by a receiver's HTTP GET.
   ###
   openSocket : (req, res, next) =>
-    # Create new socket and store in socket table
-    socket = new EphemeralSocket(req, res)
-    socketId = @socketIds.generate()
-    @socketStorage.push(socketId, socket)
+    # Create new socket and store it
+    socket = EphemeralSocket.open(req, res)
+    socketId = @_storeSocket(socket)
 
     # Fire event
-    @emit 'socket:created', socket, socketId
+    {query} = url.parse(req.url, true)
+    @emit 'socket:opened', socket, socketId, query
     return
+
+  ###
+  Creates a new disconnected socket.
+  ###
+  reserveSocket : (req, res, next) =>
+    # Create new socket and store it
+    socket   = EphemeralSocket.reserve()
+    socketId = @_storeSocket(socket)
+
+    # Fire event
+    @emit 'socket:reserved', req, res, socketId
+
+  ###
+  Connected to a reserved socket
+  ###
+  openReservedSocket : (req, res, next) =>
+    {socketId} = req.params
+    socket = @socketStorage.get(socketId)
+    return next() unless socket?
+    socket.open(req, res)
+
+    # Fire event
+    {query} = url.parse(req.url, true)
+    @emit 'socket:opened', socket, socketId, query
 
   ###
   When this socket is requested, we pipe data from the transmitter's HTTP POST
@@ -42,5 +67,13 @@ class EphemeralSocketService extends EventEmitter
 
   socketNotFound : (req, res) ->
     @emit 'socket:not-found', req, res
+
+  _storeSocket : (socket) ->
+    while true
+      socketId = @socketIds.generate()
+      continue if @socketStorage.contains(socketId)
+      @socketStorage.push(socketId, socket)
+      return socketId
+
 
 module.exports = EphemeralSocketService
