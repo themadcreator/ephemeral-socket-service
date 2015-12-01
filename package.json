@@ -1,0 +1,31 @@
+{
+  "name"        : "ephemeral-socket-service",
+  "version"     : "0.0.0",
+  "description" : "Ephemeral Socket Service",
+  "main"        : "index.js",
+  "scripts"     : {
+    "deploy"     : "npm version minor -m \"Update version to %s\" ",
+    "postdeploy" : "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/themadcreator/ephemeral-socket-service.git"
+  },
+  "keywords": [
+    "socket",
+    "curl",
+    "service",
+    "ephemeral"
+  ],
+  "author": "Bill Dwyer (github.com/themadcreator)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/themadcreator/ephemeral-socket-service/issues"
+  },
+  "homepage": "https://github.com/themadcreator/ephemeral-socket-service",
+  "dependencies" : {
+    "busboy"        : "0.2.11",
+    "coffee-script" : "1.10.0",
+    "heap"          : "0.2.6"
+  }
+}
