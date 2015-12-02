@@ -41,6 +41,7 @@ class EphemeralSocketService extends EventEmitter
     {socketId} = req.params
     socket = @socketStorage.get(socketId)
     return next() unless socket?
+    return next() if socket.state isnt EphemeralSocket.State.RESERVED
     socket.open(req, res)
 
     # Fire event
@@ -65,8 +66,11 @@ class EphemeralSocketService extends EventEmitter
     @emit 'socket:connected', socket
     return
 
-  socketNotFound : (req, res) ->
-    @emit 'socket:not-found', req, res
+  errorSocketNotFound : (req, res) ->
+    @emit 'error:not-found', req, res
+
+  errorInvalidReferrer : (req, res) ->
+    @emit 'error:referer', req, res
 
   _storeSocket : (socket) ->
     while true
