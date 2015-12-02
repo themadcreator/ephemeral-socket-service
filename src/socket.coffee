@@ -30,14 +30,20 @@ class EphemeralSocket extends EventEmitter
   ###
   pipe : (res) ->
     if @state isnt EphemeralSocket.State.OPEN or not @req?
-      throw new Error('Invalid state transition')
+      @emit('error', 'Invalid state transition')
+      process.nextTick @close
+      return
 
     @state = EphemeralSocket.State.REQUESTED
 
     busboy = new Busboy({headers : @req.headers})
     stats  = {bytes : 0}
 
-    busboy.on('file', (fieldname, fileStream) =>
+    busboy.on('file', (fieldname, fileStream, filename, encoding, mimetype) =>
+      # Copy content headers
+      if filename? then res.setHeader('Content-Disposition', "attachment; filename=#{filename}")
+      if encoding? then res.setHeader('Content-Encoding', encoding)
+      if mimetype? then res.setHeader('Content-Type', mimetype)
 
       fileStream.on('data', (data) =>
         stats.bytes += data.length
@@ -55,16 +61,19 @@ class EphemeralSocket extends EventEmitter
 
     # Pipe transmitter's HTTP POST to busboy
     @req.pipe(busboy)
+    return
 
   timeout : ->
-    if @state isnt EphemeralSocket.State.CLOSED
+    if @state isnt EphemeralSocket.State.CLOSED and @state isnt EphemeralSocket.State.REQUESTED
       @emit('timeout')
-      @close()
+      process.nextTick @close
+    return
 
-  close : ->
+  close : =>
     @state = EphemeralSocket.State.CLOSED
     delete @req
     delete @res
     @removeAllListeners()
+    return
 
 module.exports = EphemeralSocket
